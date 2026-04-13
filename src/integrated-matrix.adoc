@@ -151,6 +151,103 @@ The subextensions specific to microscaling are listed separately in <<mx-subexte
 |Zvvfp64mm        ^| Zve64d       | IEEE binary64, IEEE binary64 | IEEE binary64
 |===
 
+=== Recommended Profiles
+
+The computational subextensions in Table <<tbl-subextensions>> can be combined in many ways,
+depending on the target workload and implementation goals.
+This section defines three *recommended, non-normative* profiles intended to guide
+software developers and implementers toward useful and interoperable subsets of the
+Zvvm family for major application domains.
+
+These profiles are descriptive bundles of existing subextensions.
+They do not define new architectural requirements, and implementations are free to
+support other combinations of subextensions.
+
+==== ZvvHPC
+
+The `ZvvHPC` profile is a recommended bundle of Zvvm computational subextensions
+targeting high-performance computing workloads.
+It emphasizes support for the floating-point data types most commonly used in
+scientific computing, numerical linear algebra, simulation, and technical computing.
+
+The `ZvvHPC` profile is characterized by support for:
+
+* IEEE binary64 matrix multiplication and accumulation
+* IEEE binary32 matrix multiplication and accumulation
+* IEEE binary16 and BFloat16 inputs with accumulation into IEEE binary32 and, where supported, IEEE binary64
+
+Typical floating-point subextensions in `ZvvHPC` include:
+
+* `Zvvfp64mm`
+* `Zvvfp32mm`
+* `Zvvfp32fp64mm`
+* `Zvvfp16fp32mm`
+* `Zvvfp16fp64mm`
+* `Zvvbf16fp32mm`
+* `Zvvbf16fp64mm`
+
+Implementations targeting `ZvvHPC` may also support additional integer subextensions,
+but low-precision OFP4/OFP8 and microscaling-oriented subextensions are not the primary focus of this profile.
+
+==== ZvvAIML-FP
+
+The `ZvvAIML-FP` profile is a recommended bundle of Zvvm computational subextensions
+targeting artificial-intelligence and machine-learning workloads based on floating-point
+and mixed-precision arithmetic.
+It emphasizes support for lower-precision floating-point formats, widening accumulation,
+and microscaling-friendly data types commonly used in training and inference.
+
+The `ZvvAIML-FP` profile is characterized by support for:
+
+* OFP8 matrix multiplication and accumulation
+* IEEE binary16 and BFloat16 matrix multiplication and accumulation
+* OFP8, IEEE binary16, and BFloat16 inputs with accumulation into wider formats such as IEEE binary16 and IEEE binary32
+* Microscaling-oriented floating-point data types and associated computational subextensions
+
+Typical floating-point subextensions in `ZvvAIML-FP` include:
+
+* `Zvvofp8mm`
+* `Zvvofp8fp16mm`
+* `Zvvofp8bf16mm`
+* `Zvvofp8fp32mm`
+* `Zvvfp16mm`
+* `Zvvfp16fp32mm`
+* `Zvvbf16mm`
+* `Zvvbf16fp32mm`
+
+Implementations targeting `ZvvAIML-FP` may also support OFP4-derived widening subextensions
+such as `Zvvofp4ofp8mm`, `Zvvofp4fp16mm`, `Zvvofp4bf16mm`, and `Zvvofp4fp32mm`,
+as well as microscaling-specific subextensions listed in <<mx-subextensions-section>>.
+
+==== ZvvAIML-INT
+
+The `ZvvAIML-INT` profile is a recommended bundle of Zvvm computational subextensions
+targeting artificial-intelligence and machine-learning workloads based on quantized integer arithmetic.
+It emphasizes support for low-precision integer inputs with accumulation into wider integer formats,
+as commonly used in quantized inference.
+
+The `ZvvAIML-INT` profile is characterized by support for:
+
+* Int8 and Int16 matrix multiplication and accumulation
+* widening accumulation into Int16, Int32, and, where useful, Int64
+* optional support for Int4 input formats for more aggressively quantized workloads
+
+Typical integer subextensions in `ZvvAIML-INT` include:
+
+* `Zvvi8mm`
+* `Zvvi8i16mm`
+* `Zvvi8i32mm`
+* `Zvvi16mm`
+* `Zvvi16i32mm`
+* `Zvvi4i8mm`
+* `Zvvi4i16mm`
+* `Zvvi4i32mm`
+
+Implementations targeting `ZvvAIML-INT` may also support wider integer accumulation
+subextensions such as `Zvvi8i64mm`, `Zvvi16i64mm`, and `Zvvi32i64mm`, depending on workload requirements.
+
+NOTE: The `ZvvHPC`, `ZvvAIML-FP`, and `ZvvAIML-INT` profiles are not mutually exclusive.
+A high-end implementation may choose to support subextensions from more than one profile.
 
 === New fields in the Vector Type (`vtype`) Register
 
