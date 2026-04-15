@@ -612,6 +612,97 @@ Whenever mixed formats are used in the computational instructions, one must foll
 [#arithmetic-considerations]
 ==== Arithmetic considerations
 
+Each multiply-accumulate instruction computes, for every output element stem:[C_{i,j}]:
+
+stem:[C_{i,j} \leftarrow C_{i,j} + \sum_{k=0}^{K_{\text{eff}}-1} A_{i,k} \times B_{k,j}]
+
+where `K_eff = ? × W × LMUL`, using the legalized values of `lambda[2:0]` and `W[1:0]` read from `vtype`.
+
+This section specifies how the `K_eff` product terms are partitioned into sub-dot-products and groups, and when intermediate rounding is permitted. For floating-point instructions, the grouping factor `G` is the legalized value of `G[2:0]` read from `vtype`.
+
+===== Sub-dot-products
+
+When `W > 1`, the `W` narrow input-element pairs packed within one accumulator-width (`SEW`-bit) position form a natural computational unit called a _sub-dot-product_.
+The `W` multiplications of (`SEW÷W`)-bit elements are performed and their products summed.
+
+Each product of two (`SEW÷W`)-bit values is _exact_ at `SEW` precision: the significand has at most `2 × p_input ? 1` bits, which fits in the wider `SEW` format.
+The sub-dot-product can therefore be computed with very little loss at `SEW` or wider precision.
+
+There are `K_eff ÷ W = ? × LMUL` sub-dot-products per output element.
+
+When `W = 1`, each product of two `SEW`-bit values is exact at `2 × SEW` bits; a sub-dot-product consists of a single product term.
+
+===== Accumulation and rounding model (floating-point)
+
+The resulting value of element stem:[C_{i,j}] for any given LMUL must match the value computed by applying a series of multiply-accumulate instructions with LMUL=1, in increasing order of vector register indices.
+Therefore, it is enough to specify the result of the computations
+
+stem:[C_{i,j} \leftarrow C_{i,j} + \sum_{k=0}^{\lambda W - 1} A_{i,k} \times B_{k,j}].
+
+===== Accumulation and rounding model (floating-point)
+
+The resulting value of element stem:[C_{i,j}] for any given `LMUL` must match the value computed by applying a series of multiply-accumulate instructions with `LMUL=1`, in increasing order of vector-register indices.
+Therefore, it is enough to specify the result of the computation
+
+stem:[C_{i,j} \leftarrow C_{i,j} + \sum_{k=0}^{\lambda W - 1} A_{i,k} \times B_{k,j}]
+
+There are `? × LMUL` sub-dot-products for each output element.
+For `LMUL > 1`, the instruction is defined to produce the same result as the corresponding sequence of `LMUL=1` multiply-accumulate instructions applied in increasing vector-register-index order.
+Accordingly, the grouping factor `G` is applied separately within each `LMUL=1` step, so that a group shall not cross the boundary between two consecutive `LMUL=1` steps.
+
+For floating-point matrix multiply-accumulate instructions, the sub-dot-products for each output element are partitioned into consecutive groups of size `G`, where `G` is the legalized value of `G[2:0]` read from `vtype`.
+
+`G` must satisfy:
+
+* `G` is a power of two;
+* `1 ? G ? ?`.
+
+* Within each group, the `G` partial results are accumulated into a partial sum `S`.
+
+* If `psm=0`, the partial sum `S` may be formed using any internal precision and organization that does not require rounding to the accumulator format within the group.
+
+* If `psm=1`, the partial sum `S` shall be formed according to the input element width:
+
+  ** For input element widths less than 32 bits, the exact products belonging to the group shall be accumulated in a bulk-normalized representation according to the RVBNA Algorithm, or in an equivalent representation producing the same numerical result, and the resulting group sum shall then be rounded once to the C accumulator format using round-to-odd, thus producing the partial sum `S`.
+
+  ** For input element widths of 32 bits or greater, the exact products belonging to the group shall first be summed in infinite precision, and then rounded to the accumulator format according to the rounding mode specified in `frm`, thus producing the partial sum `S`.
+
+* After each group, the accumulated partial sum `S` is added to the running value of stem:[C_{i,j}] by computing
+
+stem:[C_{i,j} \leftarrow round_{frm}(C_{i,j} + S)].
+
+The accumulation rounding is performed with the rounding mode from `frm`.
+
+Supported values of `G` may depend on `SEW`, `W`, `lambda`, `LMUL`, and the microarchitecture. Software discovers a supported value by writing `vtype` and reading back the legalized value of `G`.
+
+For a fixed setting of `vtype`, including the legalized value of `G`, the floating-point result of a matrix multiply-accumulate instruction is fully determined by this specification.
+
+The resulting number of rounding operations per output element of C is [2](? × LMUL) ÷ G, where the factor of 2 is present when formation of the partial sum `S` requires a rounding step prior to the accumulation into C, as in the `psm=1` mode.
+
+[NOTE]
+====
+A Zvvm implementation can produce the exact same results as the analogous Zvt implementation by setting `psm=1` and choosing a suitable architectural value of `G`: `G=2` for 16-bit inputs with 32-bit outputs, and `G=1` for the other Zvt-supported formats.
+For input element widths of 32 bits or greater, compatibility with the analogous Zvt instruction is obtained with `G=1`, so that each group contains a single product and the partial sum `S` is that product rounded according to `frm`.
+
+In a *systolic-array* datapath, `G` is typically 1: each sub-dot-product is added to `C` immediately, yielding `? × LMUL` rounding additions per output element (`2 × ? × LMUL` roundings if `psm=1`).
+
+In an *outer-product* datapath, `G` is typically on the order of `?` (e.g. `?`, `?÷2`, `?÷4`, or `?÷8`): multiple sub-dot-products are accumulated at extended internal precision before a single rounding and `C` addition.
+This significantly reduces the number of expensive full-precision additions.
+
+Software shall determine the value of `G` used for execution by reading back the legalized value of `G[2:0]` from `vtype`.
+
+It is expected an implementation will have to disclose its chosen value of G in order to be certified as compliant.
+
+The rounding of partial sum S is made optional in order to match established practices in industry and other RISC-V matrix extensions.
+====
+
+Two conforming implementations may produce different floating-point results when they legalize the requested value of `G` to different supported values.
+Bit-exact reproducibility of floating-point matrix multiply-accumulate results across different implementations is therefore guaranteed only when software selects, and the implementations support, the same legalized value of `G`.
+
+Floating-point exception flags (inexact, overflow, underflow, invalid, etc.) are accumulated into `fflags`; the order in which individual exceptions are raised within a single instruction execution is implementation-defined.
+
+==== Arithmetic considerations
+
 Each multiply-accumulate instruction computes, for every output element stem:[C_{m,n}]:
 
 stem:[C_{m,n} \leftarrow C_{m,n} + \sum_{k=0}^{K_{\text{eff}}-1} A_{m,k} \times B_{k,n}]
