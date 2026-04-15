@@ -633,19 +633,12 @@ When `W = 1`, each product of two `SEW`-bit values is exact at `2 × SEW` bits; 
 
 ===== Accumulation and rounding model (floating-point)
 
-The resulting value of element stem:[C_{i,j}] for any given LMUL must match the value computed by applying a series of multiply-accumulate instructions with LMUL=1, in increasing order of vector register indices.
-Therefore, it is enough to specify the result of the computations
-
-stem:[C_{i,j} \leftarrow C_{i,j} + \sum_{k=0}^{\lambda W - 1} A_{i,k} \times B_{k,j}].
-
-===== Accumulation and rounding model (floating-point)
-
 The resulting value of element stem:[C_{i,j}] for any given `LMUL` must match the value computed by applying a series of multiply-accumulate instructions with `LMUL=1`, in increasing order of vector-register indices.
 Therefore, it is enough to specify the result of the computation
 
 stem:[C_{i,j} \leftarrow C_{i,j} + \sum_{k=0}^{\lambda W - 1} A_{i,k} \times B_{k,j}]
 
-An implementation partitions the λ sub-dot-products for each output element into consecutive groups of G sub-dot-products.
+An implementation partitions the λ sub-dot-products for each output element into consecutive groups of `G` sub-dot-products.
 The implementation-defined grouping factor `G` is applied separately within each `LMUL=1` step, so that a group shall not cross the boundary between two consecutive `LMUL=1` steps.
 
 `G` must satisfy:
@@ -655,13 +648,11 @@ The implementation-defined grouping factor `G` is applied separately within each
 
 * Within each group, the `G` partial results are accumulated into a partial sum `S`, according to an implementation-defined parameter `psm`.
 
-* If `psm=0`, the partial sum `S` may be formed using any internal precision and organization that does not require rounding to the accumulator format within the group.
+** If `psm=0`, the partial sum `S` may be formed using any internal precision and organization that does not require rounding to the accumulator format within the group.
 
-* If `psm=1`, the partial sum `S` shall be formed according to the input element width:
+** If `psm=1`, the exact products belonging to the group shall be accumulated in a bulk-normalized representation according to the RVBNA Algorithm, or in an equivalent representation producing the same numerical result, and the resulting group sum shall then be rounded once to the C accumulator format using round-to-odd, thus producing the partial sum `S`.
 
-  ** For input element widths less than 32 bits, the exact products belonging to the group shall be accumulated in a bulk-normalized representation according to the RVBNA Algorithm, or in an equivalent representation producing the same numerical result, and the resulting group sum shall then be rounded once to the C accumulator format using round-to-odd, thus producing the partial sum `S`.
-
-  ** For input element widths of 32 bits or greater, the exact products belonging to the group shall first be summed in infinite precision, and then rounded to the accumulator format according to the rounding mode specified in `frm`, thus producing the partial sum `S`.
+** If `psm=2`, the exact products belonging to the group shall first be summed in infinite precision, and then rounded to the accumulator format according to the rounding mode specified in `frm`, thus producing the partial sum `S`.
 
 * After each group, the accumulated partial sum `S` is added to the running value of stem:[C_{i,j}] by computing
 
@@ -677,8 +668,8 @@ The resulting number of rounding operations per output element of C is [2](λ ×
 
 [NOTE]
 ====
-A Zvvm implementation can produce the exact same results as the analogous Zvtm implementation by setting `psm=1` and choosing a suitable architectural value of `G`: `G=2` for 16-bit inputs with 32-bit outputs, and `G=1` for the other Zvt-supported formats.
-For input element widths of 32 bits or greater, compatibility with the analogous Zvtm instruction is obtained with `G=1` and psm=1, so that each group contains a single product and the partial sum `S` is that product rounded according to `frm`.
+A Zvvm implementation can produce the exact same results as the analogous Zvtm implementation when operating on 16- and 8-bit inputs by setting `psm=1` and choosing a suitable architectural value of `G`: `G=2` for 16-bit inputs with 32-bit outputs, and `G=1` for 8-bit inputs with 32-bit outputs.
+For input element widths of 32 bits or greater, compatibility with the analogous Zvtm instruction is obtained with `G=1` and `psm=2`, so that each group contains a single product and the partial sum `S` is that product rounded according to `frm`.
 
 In a *systolic-array* datapath, G is typically 1: each sub-dot-product is rounded and added to C immediately, yielding λ × LMUL rounding additions per output element.
 
