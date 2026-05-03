@@ -691,7 +691,7 @@ The number of groups in the computation of stem:[C_{i,j}] above is `λ` ÷ `G`.
 
 ** If `psm=0`, the partial sum `S` is formed using exact computation: the contributing products and sums are computed in sufficiently precise internal form, without rounding to the C accumulator format, until the next rounding step defined by this specification.
 
-** If `psm=1`, the exact products belonging to the group are accumulated in a bulk-normalized representation according to the https://github.com/riscv/riscv-isa-manual/blob/03c4abb8b4b276938c3fd96e3eb53c5840e3c24b/src/zvdota.adoc#risc-v-bulk-normalization-algorithm[RVBNA Algoirhtm], or in an equivalent representation producing the same numerical result. (The details of how the various parameters of RVBNA are set are described below.)
+** If `psm=1`, the exact products belonging to the group are accumulated in a bulk-normalized representation according to the https://github.com/riscv/riscv-isa-manual/blob/03c4abb8b4b276938c3fd96e3eb53c5840e3c24b/src/zvdota.adoc#risc-v-bulk-normalization-algorithm[RVBNA Algoriithm], or in an equivalent representation producing the same numerical result. (The details of how the various parameters of RVBNA are set are described below.)
 
 * Once the partial sum `S` is computed, and before it is accumulated into the result C, it is treated according to an implementation-defined parameter `rnd`.
 
@@ -1545,7 +1545,7 @@ These intrinsics are the supported way for software to discover the
 implementation's tile geometry without parsing CSR fields directly, and are
 intended for use in the runtime-dispatch pattern described in
 <<_vlen_portable_code>>: software queries lambda (and VLEN, if needed),
-then selects an appropriate code path among several specialised by MUL_C.
+then selects an appropriate code path among several specialised by EMUL_C.
 
 NOTE: `__riscv_ime_lambda()` returns a single representative lambda value
 for the implementation.  Implementations may support multiple lambda values
@@ -1794,13 +1794,13 @@ in the canonical order `_su|_us` followed by `_lm{N}`:
 
 [source,c]
 --
-/* vmmacc.vv signed A × unsigned B with LMUL=2 (MUL_C=2, LMUL=2): */
+/* vmmacc.vv signed A × unsigned B with LMUL=2 (EMUL_C=2, LMUL=2): */
 vint32m2_t __riscv_vmmacc_vv_i32m2_su_lm2(vint32m2_t vd, vint32m2_t  vs1,
                                             vuint32m2_t vs2, size_t vl);
-/* vwmmacc.vv signed A × unsigned B with LMUL=4 (MUL_C=2, LMUL=4): */
+/* vwmmacc.vv signed A × unsigned B with LMUL=4 (EMUL_C=2, LMUL=4): */
 vint32m2_t __riscv_vwmmacc_vv_i32m2_su_lm4(vint32m2_t vd, vint16m4_t  vs1,
                                               vuint16m4_t vs2, size_t vl);
-/* vqwmmacc.vv unsigned A × signed B with LMUL=8 (MUL_C=2, LMUL=8): */
+/* vqwmmacc.vv unsigned A × signed B with LMUL=8 (EMUL_C=2, LMUL=8): */
 vint32m2_t __riscv_vqwmmacc_vv_i32m2_us_lm8(vint32m2_t vd, vuint8m8_t vs1,
                                                vint8m8_t  vs2, size_t vl);
 --
