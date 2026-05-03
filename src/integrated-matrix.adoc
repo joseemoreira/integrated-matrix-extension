@@ -691,7 +691,7 @@ The number of groups in the computation of stem:[C_{i,j}] above is `λ` ÷ `G`.
 
 ** If `psm=0`, the partial sum `S` is formed using exact computation: the contributing products and sums are computed in sufficiently precise internal form, without rounding to the C accumulator format, until the next rounding step defined by this specification.
 
-** If `psm=1`, the exact products belonging to the group are accumulated in a bulk-normalized representation according to the https://github.com/riscv/riscv-isa-manual/blob/03c4abb8b4b276938c3fd96e3eb53c5840e3c24b/src/zvdota.adoc#risc-v-bulk-normalization-algorithm[RVBNA Algoriithm], or in an equivalent representation producing the same numerical result. (The details of how the various parameters of RVBNA are set are described below.)
+** If `psm=1`, the exact products belonging to the group are accumulated in a bulk-normalized representation according to the https://github.com/riscv/riscv-isa-manual/blob/03c4abb8b4b276938c3fd96e3eb53c5840e3c24b/src/zvdota.adoc#risc-v-bulk-normalization-algorithm[RVBNA Algorithm], or in an equivalent representation producing the same numerical result. (The details of how the various parameters of RVBNA are set are described below.)
 
 * Once the partial sum `S` is computed, and before it is accumulated into the result C, it is treated according to an implementation-defined parameter `rnd`.
 
